@@ -56,6 +56,18 @@ def run(command: list[str], cwd: str, env: dict | None = None, timeout: int = 36
 	"""Run a command, streaming nothing but capturing output; raise with output on failure."""
 	log(f"$ {' '.join(command)}  (in {cwd})")
 	process_env = os.environ.copy()
+	# Prefer a bench-local cache directory to avoid creating /home/frappe/.cache when
+	# the running user cannot write to the home directory. This prevents errors like
+	# "failed to create directory `/home/frappe/.cache/uv`: Permission denied".
+	bench_cache = os.path.join(bench_path(), ".cache")
+	if "XDG_CACHE_HOME" not in process_env:
+		process_env["XDG_CACHE_HOME"] = bench_cache
+		try:
+			os.makedirs(bench_cache, exist_ok=True)
+		except Exception:
+			# If we cannot create the bench-local cache, fall back to whatever the
+			# environment provides and let the caller handle the error.
+			pass
 	if env:
 		process_env.update(env)
 
