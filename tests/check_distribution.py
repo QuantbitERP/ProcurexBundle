@@ -19,12 +19,17 @@ def check_distributions(directory):
 	with zipfile.ZipFile(wheel_path) as wheel:
 		names = set(wheel.namelist())
 		assert backend <= names, f"Backend missing from wheel: {backend - names}"
-		assert not any(name.startswith("procurex_bundle/") for name in names)
+		legacy = {
+			"procurex_bundle/__init__.py", "procurex_bundle/hooks.py",
+			"procurex_bundle/compat.py", "procurex_bundle/modules.txt", "procurex_bundle/patches.txt",
+		}
+		assert legacy <= names, f"Legacy uninstall bridge missing: {legacy - names}"
+		assert "procurex_bundle/backend.py" not in names, "The runtime downloader must not return"
 	with tarfile.open(source_path) as source:
 		names = {name.split("/", 1)[1] for name in source.getnames() if "/" in name}
-		required = backend | {
+		required = backend | legacy | {
 			"frontend/package.json", "frontend/package-lock.json", "frontend/vite.config.ts",
-			"frontend/src/router.tsx", "package.json", "yarn.lock", "pyproject.toml",
+			"frontend/src/router.tsx", "package.json", "yarn.lock", "pyproject.toml", "MANIFEST.in",
 		}
 		assert required <= names, f"Source missing deployment files: {required - names}"
 		assert not any("/node_modules/" in name or "/.git/" in name for name in names)

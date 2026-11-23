@@ -1,0 +1,12 @@
+include README.md license.txt package.json yarn.lock pyproject.toml
+recursive-include frontend *
+recursive-include procurex *.py *.json *.js *.txt *.html *.css *.csv *.svg *.ico *.png *.woff *.woff2 *.ttf *.map
+recursive-include procurex_bundle *.py *.txt
+prune frontend/node_modules
+prune frontend/dist
+prune frontend/.output
+prune frontend/.tanstack
+prune frontend/.nitro
+prune frontend/.git
+prune procurex/public/node_modules
+global-exclude *.pyc *.pyo .DS_Store

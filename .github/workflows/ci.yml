@@ -28,7 +28,7 @@ jobs:
         run: |
           python -m pip install --no-deps dist/*.whl
           cd "$RUNNER_TEMP"
-          python -I -c "import procurex; import importlib.util; assert importlib.util.find_spec('procurex.api'); print(procurex.__file__)"
+          python -I -c "import procurex, procurex.hooks, procurex_bundle.hooks; import importlib.util; assert importlib.util.find_spec('procurex.api'); print(procurex.__file__)"
 
   tests:
     runs-on: ubuntu-latest

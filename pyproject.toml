@@ -12,21 +12,22 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["flit_core >=3.4,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
 
-[tool.flit.module]
-name = "procurex"
+[tool.setuptools.dynamic]
+version = {attr = "procurex.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["procurex", "procurex.*", "procurex_bundle"]
+namespaces = false
+
+[tool.setuptools]
+include-package-data = true
 
 [tool.bench.frappe-dependencies]
 frappe = ">=16.0.0-dev,<17.0.0"
-
-[tool.flit.sdist]
-include = ["frontend/", "package.json", "yarn.lock"]
-exclude = [
-    "frontend/node_modules/", "frontend/dist/", "frontend/.output/",
-    "frontend/.tanstack/", "frontend/.nitro/", ".frontend-build.lock",
-]
 
 # These dependencies are only installed when developer mode is enabled
 [tool.bench.dev-dependencies]
