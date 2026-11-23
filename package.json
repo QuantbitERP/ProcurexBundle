@@ -1,0 +1,12 @@
+{
+  "name": "procurex",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "postinstall": "python3 procurex/build.py --install-deps",
+    "build": "python3 procurex/build.py"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
