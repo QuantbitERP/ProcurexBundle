@@ -1,56 +1,128 @@
-# ProcureX Bundle
+# ProcureX
 
-One Frappe app that pulls in both halves of ProcureX and wires them together:
+One Frappe v16 app containing the procurement backend and the React UI.
+Install **only `procurex`**. No wrapper app, frontend repository clone, PM2,
+Next.js server, Nitro server, separate port, or proxy configuration is needed.
 
-- **Backend** — [ProcureX-Backend](https://github.com/QuantbitERP/ProcureX-Backend) (`procurex`), fetched with `bench get-app` and installed on the site.
-- **Frontend** — [ProcureX](https://github.com/QuantbitERP/ProcureX), cloned, built as a static SPA and served by Frappe itself at `/procurex`.
+## Layout
 
-## Installation
-
-```bash
-cd $PATH_TO_YOUR_BENCH
-bench get-app https://github.com/jp-1709/ProcurexBundle.git
-bench --site <site> install-app procurex_bundle
+```text
+procurex/
+  procurex/
+    api.py                  # existing procurex.api.* endpoints
+    procurex/doctype/       # existing procurement DocTypes
+    build.py                # automatic frontend build and publish
+    renderer.py             # Frappe renderer for /procurex/*
+    public/ui/              # generated static UI
+  frontend/
+    src/                    # React pages and components, versioned in this repo
+    public/
+    vite.config.ts
+    package.json
+    package-lock.json
+  package.json              # normal Bench dependency/build commands
+  yarn.lock
+  pyproject.toml
 ```
 
-That is the whole setup. `install-app` will:
+## Install on a Bench
 
-1. `bench get-app` the backend repo into `apps/procurex` (if it is not there already) and install `procurex` on the site,
-2. clone the frontend into `apps/procurex_bundle/frontend/ProcureX`,
-3. `npm install` and build it into `apps/procurex_bundle/procurex_bundle/public/procurex`,
-4. serve it at `https://<site>/procurex`.
+Use a Frappe v16 bench with ERPNext installed, Python 3.14+, and its supported
+Node 24+ / npm / Yarn toolchain. Node is used to compile assets, not to serve
+ProcureX in production. No developer-specific Node path is required.
 
-Requirements on the bench host: `git`, and Node.js 20.19+ / 22.12+ with `npm` (the frontend uses Vite 8). The frontend build takes a few minutes.
-
-## How the two halves connect
-
-The SPA is built with `vite base = /assets/procurex_bundle/procurex/` and the TanStack router `basepath = /procurex`, and Frappe serves the prerendered shell for `/procurex/*` through a page renderer. Because the SPA is served by the site itself, its relative `/api/...` calls land on the same Frappe site with the session cookie already attached — no Node server, no PM2, no extra port, no reverse-proxy rules. The renderer also injects `window.csrf_token` (and a `csrf_token` cookie) so writes pass Frappe's CSRF check.
-
-The frontend repository is never patched: the build uses `frontend/procurex-bundle.vite.config.ts` from this app, passed to `vite build --config`.
-
-## Commands
+For a local bench managed with nvm, select Node 24 in the terminal before
+running Bench commands. This selects Node for that terminal without changing
+the global default or other benches:
 
 ```bash
-# rebuild the frontend (e.g. after changing branches or a failed install)
-bench --site <site> procurex-bundle-build-frontend [--update] [--clean]
-
-# fetch + install the backend app only
-bench --site <site> procurex-bundle-setup-backend
+cd /path/to/frappe-bench
+source "$HOME/.nvm/nvm.sh"
+nvm use 24
+node --version
 ```
 
-## Configuration
+The version must be 24 or newer. Do not bypass Yarn's engine check: Frappe
+itself requires this Node version, even before ProcureX's build starts.
 
-Optional overrides in `site_config.json` / `common_site_config.json`:
+```bash
+bench get-app https://github.com/QuantbitERP/ProcurexBundle.git --branch version-16
+bench --site <site> install-app procurex
+```
 
-| Key | Default |
-| --- | --- |
-| `procurex_bundle_backend_repo` | `https://github.com/QuantbitERP/ProcureX-Backend.git` |
-| `procurex_bundle_backend_branch` | `version-16` |
-| `procurex_bundle_frontend_repo` | `https://github.com/QuantbitERP/ProcureX.git` |
-| `procurex_bundle_frontend_branch` | `main` |
-| `procurex_bundle_node_bin` | — (directory containing `node`/`npm`, when not on `PATH`) |
-| `procurex_bundle_skip_frontend_build` | `false` (skip the build during `install-app`) |
+Open `https://<site>/procurex`. ProcureX also appears on the Frappe apps screen.
+`bench get-app` installs the frontend dependencies and builds the UI through the
+normal asset build. `after_install` ensures the UI is available if assets were
+skipped earlier. Build errors fail visibly rather than reporting a successful
+install with a missing UI.
+
+```bash
+# After updating the app, the normal Bench build publishes the updated UI.
+bench build --app procurex
+```
+
+`after_migrate` also checks the bundled UI. An unchanged, complete build is
+reused without running npm, requiring Node at runtime, or writing app files.
+Builds on the same bench share a lock. Assets are published before the shell,
+and old hashed chunks remain available to already-open browser sessions.
+
+## Frappe Cloud
+
+Publish this `version-16` branch of `QuantbitERP/ProcurexBundle`, add **procurex** to a compatible
+Frappe v16 custom-app bench with ERPNext, deploy it, and install it on the site.
+The GitHub repository is named `ProcurexBundle`; its single Frappe app is named
+`procurex`. Bench uses the Python package name and creates `apps/procurex`.
+Do not install a second app named `procurex_bundle` or the standalone React repository.
+
+The root `package.json` installs the nested frontend dependencies with `npm ci`
+(including build-time dev dependencies). Its build script produces static UI
+assets in the normal Bench/Cloud asset stage. The site then serves `/procurex`
+through Frappe, using the same-origin `/api` endpoints, session cookie and CSRF
+token. No extra web process is created.
+
+The structure follows Frappe Cloud's documented nested frontend
+[dependency installation pattern](https://docs.frappe.io/cloud/common-issues/vite-not-found)
+and Frappe's [build and install hooks](https://docs.frappe.io/framework/user/en/python-api/hooks).
+The build and site lifecycle have been tested locally; a Frappe Cloud deployment
+must use the published consolidated code and has not been performed here.
+
+## Existing installations using the wrapper
+
+The backend app name, API paths, DocTypes and existing procurement records remain
+`procurex`. Build the consolidated app first. Back up the site, then preview
+removing the empty wrapper:
+
+```bash
+bench build --app procurex
+bench --site <site> backup --with-files
+bench --site <site> uninstall-app procurex_bundle --dry-run
+```
+
+Verify that only the wrapper's empty module is listed. Uninstall **only** the
+wrapper, then clear cache:
+
+```bash
+bench --site <site> uninstall-app procurex_bundle --yes
+bench --site <site> clear-cache
+```
+
+Once no site uses the wrapper, its old source can be archived outside `apps/`.
+Do not uninstall `procurex`; it owns the procurement data.
+
+## Existing integrations
+
+The UI and business APIs are preserved. Some Project/Finance pages call the
+separate `quantbit_construction_management` app or existing external services.
+Consolidation does not supply those independent integrations.
+
+## Checks
+
+```bash
+./env/bin/python -m unittest procurex.tests.test_ui_build
+```
+
+Run from the bench root. The UI lifecycle tests do not use a database.
 
 ## License
 
-MIT
+MIT. See `license.txt`.

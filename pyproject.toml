@@ -1,10 +1,10 @@
 [project]
-name = "procurex_bundle"
+name = "procurex"
 authors = [
     { name = "Quantbit Technologies Pvt Ltd", email = "contact@quantbit.io"}
 ]
-description = "Meta app that installs and wires up the ProcureX backend (Frappe app) and the ProcureX frontend (TanStack Start SPA)"
-requires-python = ">=3.10"
+description = "ProcureX procurement APIs and bundled React UI, served by Frappe"
+requires-python = ">=3.14"
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [
@@ -15,14 +15,19 @@ dependencies = [
 requires = ["flit_core >=3.4,<4"]
 build-backend = "flit_core.buildapi"
 
+[tool.bench.frappe-dependencies]
+frappe = ">=16.0.0-dev,<17.0.0"
+
+[tool.flit.sdist]
+include = ["frontend/", "package.json", "yarn.lock"]
+exclude = [
+    "frontend/node_modules/", "frontend/dist/", "frontend/.output/",
+    "frontend/.tanstack/", "frontend/.nitro/", ".frontend-build.lock",
+]
+
 # These dependencies are only installed when developer mode is enabled
 [tool.bench.dev-dependencies]
 # package_name = "~=1.1.0"
-
-# Specify compatible Frappe versions for bench
-[tool.bench.frappe-dependencies]
-# Use a conservative compatible constraint; adjust if your app targets a different major version
-frappe = ">=16.0.0-dev,<17.0.0"
 
 # These apt dependencies will be installed from Ubuntu repositories when you host your app on Frappe Cloud
 [deploy.dependencies.apt]
@@ -30,7 +35,7 @@ packages = []
 
 [tool.ruff]
 line-length = 110
-target-version = "py310"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = [
